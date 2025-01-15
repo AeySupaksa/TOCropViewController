@@ -41,6 +41,8 @@ NS_ASSUME_NONNULL_BEGIN
 @end
 
 @interface TOCropView : UIView
+@property (nonatomic, strong, readonly) UIRotationGestureRecognizer *rotationGestureRecognizer;
+@property (nonatomic, assign, readonly) CGFloat rotationAngle;
 
 /**
  The image that the crop view is displaying. This cannot be changed once the crop view is instantiated.

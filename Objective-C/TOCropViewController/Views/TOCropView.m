@@ -108,6 +108,11 @@ typedef NS_ENUM(NSInteger, TOCropViewOverlayEdge) {
  has been properly set up in its parent. */
 @property (nonatomic, assign) BOOL initialSetupPerformed;
 
+
+@property (nonatomic, strong, readwrite) UIRotationGestureRecognizer *rotationGestureRecognizer;
+@property (nonatomic, assign, readwrite) CGFloat rotationAngle;
+
+
 @end
 
 @implementation TOCropView
@@ -235,6 +240,14 @@ typedef NS_ENUM(NSInteger, TOCropViewOverlayEdge) {
     self.gridPanGestureRecognizer.delegate = self;
     [self.scrollView.panGestureRecognizer requireGestureRecognizerToFail:self.gridPanGestureRecognizer];
     [self addGestureRecognizer:self.gridPanGestureRecognizer];
+    
+        // inittal for rotating function
+    self.rotationGestureRecognizer = [[UIRotationGestureRecognizer alloc] initWithTarget:self action:@selector(handleRotationGesture:)];
+    self.rotationGestureRecognizer.delegate = self;
+    [self addGestureRecognizer:self.rotationGestureRecognizer];
+
+    self.rotationAngle = 0.0f; // Initialize rotation angle
+
 }
 
 #pragma mark - View Layout -
@@ -692,54 +705,36 @@ typedef NS_ENUM(NSInteger, TOCropViewOverlayEdge) {
     
     [self checkForCanReset];
 }
-
-- (void)resetLayoutToDefaultAnimated:(BOOL)animated
-{
-    // If resetting the crop view includes resetting the aspect ratio,
-    // reset it to zero here. But set the ivar directly since there's no point
-    // in performing the relayout calculations right before a reset.
+- (void)resetLayoutToDefaultAnimated:(BOOL)animated {
+    // Existing implementation (do not replace or modify this part)
     if (self.hasAspectRatio && self.resetAspectRatioEnabled) {
         _aspectRatio = CGSizeZero;
     }
     
     if (animated == NO || self.angle != 0) {
-        //Reset all of the rotation transforms
         _angle = 0;
-
-        //Set the scroll to 1.0f to reset the transform scale
         self.scrollView.zoomScale = 1.0f;
         
         CGRect imageRect = (CGRect){CGPointZero, self.image.size};
-        
-        //Reset everything about the background container and image views
         self.backgroundImageView.transform = CGAffineTransformIdentity;
         self.backgroundContainerView.transform = CGAffineTransformIdentity;
         self.backgroundImageView.frame = imageRect;
         self.backgroundContainerView.frame = imageRect;
-
-        //Reset the transform ans size of just the foreground image
         self.foregroundImageView.transform = CGAffineTransformIdentity;
         self.foregroundImageView.frame = imageRect;
         
-        //Reset the layout
         [self layoutInitialImage];
-        
-        //Enable / Disable the reset button
         [self checkForCanReset];
-        
         return;
     }
 
-    //If we were in the middle of a reset timer, cancel it as we'll
-    //manually perform a restoration animation here
     if (self.resetTimer) {
         [self cancelResetTimer];
         [self setEditing:NO resetCropBox:NO animated:NO];
     }
-   
+    
     [self setSimpleRenderMode:YES animated:NO];
     
-    //Perform an animation of the image zooming back out to its original size
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.01f * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         [UIView animateWithDuration:0.5f delay:0.0f usingSpringWithDamping:1.0f initialSpringVelocity:1.0f options:UIViewAnimationOptionBeginFromCurrentState animations:^{
             [self layoutInitialImage];
@@ -747,7 +742,13 @@ typedef NS_ENUM(NSInteger, TOCropViewOverlayEdge) {
             [self setSimpleRenderMode:NO animated:YES];
         }];
     });
+    
+    // Add this block to reset the rotation
+    self.rotationAngle = 0.0f;
+    self.foregroundImageView.transform = CGAffineTransformIdentity;
+    self.backgroundImageView.transform = CGAffineTransformIdentity;
 }
+
 
 - (void)toggleTranslucencyViewVisible:(BOOL)visible
 {
@@ -820,22 +821,45 @@ typedef NS_ENUM(NSInteger, TOCropViewOverlayEdge) {
         [self.gridOverlayView setGridHidden:YES animated:YES];
 }
 
-- (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)gestureRecognizer
-{
-    if (gestureRecognizer != self.gridPanGestureRecognizer)
+- (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)gestureRecognizer {
+    // Handle rotation gesture
+    if (gestureRecognizer == self.rotationGestureRecognizer) {
+        return YES; // Allow rotation gesture
+    }
+    
+    // Existing implementation
+    if (gestureRecognizer != self.gridPanGestureRecognizer) {
         return YES;
+    }
     
     CGPoint tapPoint = [gestureRecognizer locationInView:self];
-    
     CGRect frame = self.gridOverlayView.frame;
     CGRect innerFrame = CGRectInset(frame, 22.0f, 22.0f);
     CGRect outerFrame = CGRectInset(frame, -22.0f, -22.0f);
     
-    if (CGRectContainsPoint(innerFrame, tapPoint) || !CGRectContainsPoint(outerFrame, tapPoint))
+    if (CGRectContainsPoint(innerFrame, tapPoint) || !CGRectContainsPoint(outerFrame, tapPoint)) {
         return NO;
+    }
     
     return YES;
 }
+
+//- (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)gestureRecognizer
+//{
+//    if (gestureRecognizer != self.gridPanGestureRecognizer)
+//        return YES;
+//    
+//    CGPoint tapPoint = [gestureRecognizer locationInView:self];
+//    
+//    CGRect frame = self.gridOverlayView.frame;
+//    CGRect innerFrame = CGRectInset(frame, 22.0f, 22.0f);
+//    CGRect outerFrame = CGRectInset(frame, -22.0f, -22.0f);
+//    
+//    if (CGRectContainsPoint(innerFrame, tapPoint) || !CGRectContainsPoint(outerFrame, tapPoint))
+//        return NO;
+//    
+//    return YES;
+//}
 
 - (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch
 {
@@ -1052,8 +1076,7 @@ typedef NS_ENUM(NSInteger, TOCropViewOverlayEdge) {
     CGRect cropFrame = self.cropBoxFrame;
     return CGRectGetWidth(cropFrame) < CGRectGetHeight(cropFrame);
 }
-
-- (CGRect)imageCropFrame
+- (CGRect)imageCropFrame // update method for supporting rotation
 {
     CGSize imageSize = self.imageSize;
     CGSize contentSize = self.scrollView.contentSize;
@@ -1063,28 +1086,54 @@ typedef NS_ENUM(NSInteger, TOCropViewOverlayEdge) {
     CGFloat scale = MIN(imageSize.width / contentSize.width, imageSize.height / contentSize.height);
     
     CGRect frame = CGRectZero;
-    
-    // Calculate the normalized origin
-    frame.origin.x = floorf((floorf(contentOffset.x) + edgeInsets.left) * (imageSize.width / contentSize.width));
-    frame.origin.x = MAX(0, frame.origin.x);
-    
-    frame.origin.y = floorf((floorf(contentOffset.y) + edgeInsets.top) * (imageSize.height / contentSize.height));
-    frame.origin.y = MAX(0, frame.origin.y);
-    
-    // Calculate the normalized width
-    frame.size.width = ceilf(cropBoxFrame.size.width * scale);
-    frame.size.width = MIN(imageSize.width, frame.size.width);
 
-    // Calculate normalized height
-    if (floor(cropBoxFrame.size.width) == floor(cropBoxFrame.size.height)) {
-        frame.size.height = frame.size.width;
-    } else {
-        frame.size.height = ceilf(cropBoxFrame.size.height * scale);
-    }
-    frame.size.height = MIN(imageSize.height, frame.size.height);
+    // Apply rotation adjustment to crop frame
+    CGAffineTransform transform = CGAffineTransformMakeRotation(-self.rotationAngle);
+    CGPoint cropCenter = CGPointMake(CGRectGetMidX(cropBoxFrame), CGRectGetMidY(cropBoxFrame));
+    CGPoint transformedCenter = CGPointApplyAffineTransform(cropCenter, transform);
+
+    // Adjust crop origin and size
+    frame.origin.x = floorf((contentOffset.x + edgeInsets.left) * scale + transformedCenter.x);
+    frame.origin.y = floorf((contentOffset.y + edgeInsets.top) * scale + transformedCenter.y);
+    frame.size.width = ceilf(cropBoxFrame.size.width * scale);
+    frame.size.height = ceilf(cropBoxFrame.size.height * scale);
 
     return frame;
 }
+
+// Old one
+//- (CGRect)imageCropFrame
+//{
+//    CGSize imageSize = self.imageSize;
+//    CGSize contentSize = self.scrollView.contentSize;
+//    CGRect cropBoxFrame = self.cropBoxFrame;
+//    CGPoint contentOffset = self.scrollView.contentOffset;
+//    UIEdgeInsets edgeInsets = self.scrollView.contentInset;
+//    CGFloat scale = MIN(imageSize.width / contentSize.width, imageSize.height / contentSize.height);
+//    
+//    CGRect frame = CGRectZero;
+//    
+//    // Calculate the normalized origin
+//    frame.origin.x = floorf((floorf(contentOffset.x) + edgeInsets.left) * (imageSize.width / contentSize.width));
+//    frame.origin.x = MAX(0, frame.origin.x);
+//    
+//    frame.origin.y = floorf((floorf(contentOffset.y) + edgeInsets.top) * (imageSize.height / contentSize.height));
+//    frame.origin.y = MAX(0, frame.origin.y);
+//    
+//    // Calculate the normalized width
+//    frame.size.width = ceilf(cropBoxFrame.size.width * scale);
+//    frame.size.width = MIN(imageSize.width, frame.size.width);
+//
+//    // Calculate normalized height
+//    if (floor(cropBoxFrame.size.width) == floor(cropBoxFrame.size.height)) {
+//        frame.size.height = frame.size.width;
+//    } else {
+//        frame.size.height = ceilf(cropBoxFrame.size.height * scale);
+//    }
+//    frame.size.height = MIN(imageSize.height, frame.size.height);
+//
+//    return frame;
+//}
 
 - (void)setImageCropFrame:(CGRect)imageCropFrame
 {
@@ -1720,6 +1769,21 @@ typedef NS_ENUM(NSInteger, TOCropViewOverlayEdge) {
     }
 
     self.canBeReset = canReset;
+}
+#pragma mark - handleRotationGesture Methods -
+- (void)handleRotationGesture:(UIRotationGestureRecognizer *)gesture {
+    CGFloat rotation = gesture.rotation; // Current rotation in radians
+
+    if (gesture.state == UIGestureRecognizerStateBegan || gesture.state == UIGestureRecognizerStateChanged) {
+        // Apply the rotation to the foreground and background image views
+        CGAffineTransform transform = CGAffineTransformRotate(CGAffineTransformMakeRotation(self.rotationAngle), rotation);
+        self.foregroundImageView.transform = transform;
+        self.backgroundImageView.transform = transform;
+    } else if (gesture.state == UIGestureRecognizerStateEnded || gesture.state == UIGestureRecognizerStateCancelled) {
+        // Update the cumulative rotation angle
+        self.rotationAngle += rotation;
+        gesture.rotation = 0.0f; // Reset the gesture's rotation
+    }
 }
 
 #pragma mark - Convienience Methods -
