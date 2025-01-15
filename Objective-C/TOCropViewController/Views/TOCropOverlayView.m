@@ -147,7 +147,7 @@ static const CGFloat kTOCropOverLayerCornerWidth = 20.0f;
     //grid lines - vertical
     numberOfLines = self.verticalGridLines.count;
     padding = (CGRectGetWidth(self.bounds) - (thickness*numberOfLines)) / (numberOfLines + 1);
-    for (NSInteger i = 0; i < numberOfLines+1; i++) {
+    for (NSInteger i = 0; i < numberOfLines; i++) {
         UIView *lineView = self.verticalGridLines[i];
         CGRect frame = CGRectZero;
         frame.size.width = thickness;
@@ -207,7 +207,7 @@ static const CGFloat kTOCropOverLayerCornerWidth = 20.0f;
     }];
     
     if (_displayVerticalGridLines) {
-        self.verticalGridLines = @[[self createNewLineView], [self createNewLineView]];
+        self.verticalGridLines = @[[self createNewLineView], [self createNewLineView],[self createNewLineView]];
     } else {
         self.verticalGridLines = @[];
     }
