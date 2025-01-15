@@ -150,6 +150,9 @@ static const CGFloat kTOCropOverLayerCornerWidth = 20.0f;
     for (NSInteger i = 0; i < numberOfLines; i++) {
         UIView *lineView = self.verticalGridLines[i];
         CGRect frame = CGRectZero;
+        if (i == 1) {
+            lineView.backgroundColor = [UIColor yellowColor];
+        }
         frame.size.width = thickness;
         frame.size.height = CGRectGetHeight(self.bounds);
         frame.origin.x = (padding * (i+1)) + (thickness * i);
