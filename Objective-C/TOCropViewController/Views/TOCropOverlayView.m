@@ -151,7 +151,7 @@ static const CGFloat kTOCropOverLayerCornerWidth = 20.0f;
         UIView *lineView = self.verticalGridLines[i];
         CGRect frame = CGRectZero;
         if (i == 1) {
-            lineView.backgroundColor = [UIColor yellowColor];
+            lineView.backgroundColor = [UIColor redColor];
         }
         frame.size.width = thickness;
         frame.size.height = CGRectGetHeight(self.bounds);
@@ -195,7 +195,7 @@ static const CGFloat kTOCropOverLayerCornerWidth = 20.0f;
     }];
     
     if (_displayHorizontalGridLines) {
-        self.horizontalGridLines = @[[self createNewLineView], [self createNewLineView]];
+        self.horizontalGridLines = @[[self createNewLineView],[self createNewLineView],[self createNewLineView],[self createNewLineView], [self createNewLineView]];
     } else {
         self.horizontalGridLines = @[];
     }
