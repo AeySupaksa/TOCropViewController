@@ -114,6 +114,11 @@
  */
 @property (nonatomic, assign) BOOL showActivitySheetOnDone;
 
+
+
+//new variable contain rotation image angle
+@property (nonatomic, readonly) CGFloat rotationAngle;
+
 /**
  The crop view managed by this view controller.
  */

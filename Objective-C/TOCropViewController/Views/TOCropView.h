@@ -41,6 +41,7 @@ NS_ASSUME_NONNULL_BEGIN
 @end
 
 @interface TOCropView : UIView
+// rotation variable 
 @property (nonatomic, strong, readonly) UIRotationGestureRecognizer *rotationGestureRecognizer;
 @property (nonatomic, assign, readonly) CGFloat rotationAngle;
 

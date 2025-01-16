@@ -1332,4 +1332,10 @@ static const CGFloat kTOCropViewControllerToolbarHeight = 44.0f;
     return self.cropView.minimumAspectRatio;
 }
 
+// append new rotationAngle
+- (CGFloat)rotationAngle {
+    return self.cropView.rotationAngle; // Ensure rotationAngle is accessible in TOCropView
+}
+
+
 @end
